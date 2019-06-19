@@ -14,7 +14,7 @@ highest_order = 1
 # differentiate on and between nodes
 eval_points = range(-2, stop=2, length=num_eval)
 
-min_num_nodes = ScatteredCollocation.smallest_stencil(numdims, highest_order)
+min_num_nodes = ScatteredCollocation.smalleststencil(numdims, highest_order)
 
 # test varying stencil sizes
 for num_nodes = min_num_nodes:2:round(Int, num_eval/10)
