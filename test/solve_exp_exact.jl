@@ -4,43 +4,60 @@ using Test
 using SparseArrays
 using LinearAlgebra
 using IterativeSolvers
-using IncompleteLU
-using AlgebraicMultigrid
-
+#using IncompleteLU
+#using AlgebraicMultigrid
 # Krylov, KrylovMethods
+
+using AbstractPlotting
 
 # Solve:
 # dudx - u = 0
 #     u(0) = 1
 
-num_points = 1400
-stencil_size = 20
-T = SparseMatrixCSC{BigFloat}#Array{Float64}#
+num_points = 100
+k = 3
+accuracy_order = 3
+T = Array{Float64}#SparseMatrixCSC{BigFloat}#
 
 x = collect(range(0.0, stop=1.0, length=num_points))
 tree = KDTree(hcat([[y] for y in x]...); leafsize=10)
 
-# assemble boundary condition operator
-ind = [1];
-nn, _ = knn(tree, reshape(x[ind], 1, length(ind)), stencil_size)
-A = assemble(T, x, ind, nn, identityop)
-f = ones(Float64, length(ind))
+bidxs = [1]
+iidxs = setdiff(1:num_points,bidxs)
 
-# assemble main differential operator
-op(centre, stencil) = linearop(centre, stencil, [1, 0], [1, -1])
-ind = collect(2:num_points)
-nn, _ = knn(tree, reshape(x[ind], 1, length(ind)), stencil_size)
-B = assemble(T, x, ind, nn, op)
-g = zeros(Float64, length(ind))
+# assemble interior/boundary operators and RHSs
+sca = SCAssembler3(k, accuracy_order, tree)
+A = derivative(T, sca, 1, iidxs) - derivative(T, sca, 0, iidxs)
+B = derivative(T, sca, 0, bidxs)
+f = zeros(Float64, length(iidxs))
+g = ones(Float64, length(bidxs))
+
+# project the BCs onto the interior
+A = hcat(A[:,iidxs], A[:,bidxs])
+B = hcat(B[:,iidxs], B[:,bidxs])
+Ap, Bp, fp, gp = projbc(A, B, f, g)
 
 #print(LinearAlgebra.cond(Array([A; B])))
 #print('\n')
 
-# complete and solve system, check solution
-#u = [A; B] \ [f; g]
-#p = IncompleteLU.ilu([A; B], τ=0.1)
-#u = IterativeSolvers.gmres([A; B], [f; g]; maxiter=20, tol=1e-12, verbose=true, Pl=p)
-ml = ruge_stuben([A; B])
-u = solve(ml, [f; g])
-@test isapprox(u, exp.(x); rtol=sqrt(1e-3), atol=0)
+e = eigvals(Ap)
+println(maximum(real.(e)))
+ymin, ymax = extrema(imag.(e))
+markersize = 0.01*(ymax-ymin)
+scene = AbstractPlotting.scatter(real.(e), imag.(e), markersize=markersize)
+display(scene)
+
+# solve system, extrapolate to boundary, check solution
+u = Ap\fp#IterativeSolvers.gmres(Ap, fp; verbose=true)#
+v = zeros(Float64, num_points)
+v[iidxs] = u
+v[bidxs] = gp-Bp*u
+
+#ymin, ymax = extrema(v)
+#markersize = 0.01*(ymax-ymin)
+#scene = AbstractPlotting.lines(x, exp.(x))
+#AbstractPlotting.scatter!(scene, x, v, markersize=markersize)
+#display(scene)
+
+#@test isapprox(u, exp.(x); rtol=sqrt(1e-3), atol=0)
 #@test u ≈ exp.(x)
