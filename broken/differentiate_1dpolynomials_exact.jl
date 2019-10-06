@@ -14,7 +14,7 @@ highest_order = 1
 # differentiate on and between nodes
 eval_points = range(-2, stop=2, length=num_eval)
 
-min_num_nodes = ScatteredCollocation.smalleststencil(numdims, highest_order)
+min_num_nodes = 3
 
 # test varying stencil sizes
 for num_nodes = min_num_nodes:2:round(Int, num_eval/10)
@@ -35,7 +35,7 @@ for num_nodes = min_num_nodes:2:round(Int, num_eval/10)
         D = zeros(Float64, num_eval, num_nodes)
         for row = 1:num_eval
             x0 = eval_points[row]
-            D[row, :] = ScatteredCollocation.differentiate(x0, colloc_nodes, diff_order)
+            D[row, :] = ScatteredCollocation.differentiate(x0, colloc_nodes, diff_order; k=3, npoly=num_poly)
         end
 
         # differentiate samples and compare

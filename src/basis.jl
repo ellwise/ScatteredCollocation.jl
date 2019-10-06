@@ -1,81 +1,107 @@
-# fractional derivatives: https://arxiv.org/pdf/1612.07563.pdf
-# https://en.wikipedia.org/wiki/Fractional_calculus#Fractional_derivative_of_a_basic_power_function
-
 """
-    poly(x, exponents)
-    poly(x, exponents, diff_orders)
+    Poly(coeff, exponents)
 
-Compute a specified monomial basis function or its derivatives. Multidimensional
-arguments should be given as tuples.
+Defines a monomial with an associated coefficient. Once constructed, the Poly
+can be evaluated like a function, or differentiated to yield another Poly.
 """
-function poly end
-poly(x, exponent) = x^exponent
-function poly(x, exponent, diff_order)
-    if diff_order ≤ exponent
-        # https://www.wolframalpha.com/input/?i=d%5Ek%2Fdx%5Ek+x%5Ea
-        new_exponent = exponent-diff_order
-        coeff = pochhammer(1+new_exponent, diff_order)
-        return coeff * poly(x, new_exponent)
-    end
-    return zero(x)
-end
-poly(x::Tuple, exponents::Tuple) = prod(poly.(x, exponents)) # @assert all(exponents .≥ 0)
-poly(x::Tuple, exponents::Tuple, diff_orders::Tuple) = prod(poly.(x, exponents, diff_orders))
-
-"""
-    phs(x, k)
-    phs(x, k, exponents)
-    phs(x, k, exponents, diff_orders)
-
-Compute an odd polyharmonic spline (PHS) or its derivatives. If exponents are
-given, the PHS is defined by poly(x, exponents) * phs(x, k). This facilitates
-a recursive definition of the PHS's derivatives. Multidimensional arguments
-should be given as tuples.
-"""
-function phs end
-function phs(x, k)
-    # to ensure the system is uniquely solvable, Barnet gives theorems for only r^k phs
-    # I don't need to worry about replicating terms in 1D, because I always choose a maximal k, i.e. k > maxorder
-    #@assert isodd(k)
-    #@assert k > 0
-    return abs(x)^k
-end
-phs(x, k, exponent) = poly(x, exponent) * phs(x, k)
-function phs(x, k, exponent, diff_order)
-    if diff_order > 0
-        if exponent ≤ 0
-            left_term = zero(x)
-        else
-            left_term = exponent*phs(x, k, exponent-1, diff_order-1)
-        end
-        right_term = k*phs(x, k-2, exponent+1, diff_order-1)
-        return left_term + right_term
-    end
-    return phs(x, k, exponent)
+struct Poly
+    coeff::Float64
+    exponents::Vector{Int}
 end
 
-phs(x::Tuple, k) = phs(norm2(x), k)
-phs(x::Tuple, k, exponents::Tuple) = poly(x, exponents) * phs(x, k)
-function phs(x::Tuple, k, exponents::Tuple, diff_orders::Tuple)
-    # add a diff_orders check to ensure the PHS is high enough order?
-    # OR, I NEED TO REDEFINE phs SO THAT THIS ISN'T A PROBLEM ANY MORE
+# not strictly right (doesn't deal with 1/x correctly), but helps with differentiation
+function (f::Poly)(x::AbstractVector)
+    val = f.coeff * prod(x.^f.exponents)
+    return iszero(f.coeff) ? zero(val) : val
+    # below is not type-stable (eltype(x)) not neccessarily typeof(f.coeff * prod(x.^f.exponents))
+    #return iszero(f.coeff) ? zero(eltype(x)) : f.coeff * prod(x.^f.exponents)
+end
+
+function differentiate(f::Poly, diff_orders)
     dim = findfirst(y->y≠0, diff_orders)
-    if dim≠nothing
-        diff_orders_new = inctuple(diff_orders, dim, -1)#copy(diff_orders)
-        #diff_orders_new[dim] -= 1
-        coeff = exponents[dim]
-        if coeff ≤ 0
-            left_term = zero(eltype(x))
-        else
-            exponents_new = inctuple(exponents, dim, -1)#copy(exponents)
-            #exponents_new[dim] -= 1
-            left_term = coeff * phs(x, k, exponents_new, diff_orders_new)
-        end
-        # do I need to deal with k=0 specially?
-        exponents_new = inctuple(exponents, dim, 1)#copy(exponents)
-        #exponents_new[dim] += 1
-        right_term = k * phs(x, k-2, exponents_new, diff_orders_new)
-        return left_term + right_term
+    if isnothing(dim)
+        return f
+    else
+        coeff = f.coeff
+        ps = f.exponents
+        diff_orders_new = copy(diff_orders); diff_orders_new[dim] -= 1
+        psm1 = copy(ps); psm1[dim] -= 1
+        g = Poly(coeff*ps[dim], psm1)
+        return differentiate(g, diff_orders_new)
     end
-    return phs(x, k, exponents)
+end
+
+"""
+    PHS(k, islog)
+
+Defines a generalised polyharmonic spline. Once constructed, the PHS
+can be evaluated like a function, or differentiated to yield a Vector
+of PHSPoly.
+"""
+struct PHS
+    k::Int
+    islog::Bool
+end
+
+function (f::PHS)(x::AbstractVector)
+    r = norm(x, 2)
+    if f.islog
+        return r < 1 ? r^(f.k-1)*log(r^r) : r^f.k*log(r)
+    else
+        return r^f.k
+    end
+end
+
+function differentiate(f::PHS, diff_orders)
+    g = Poly(1.0, zero(diff_orders))
+    h = PHSPoly(f, g)
+    return differentiate(h, diff_orders)
+end
+
+"""
+    PHSPoly(f, g)
+
+Defines a product of a monomial and a polyharmonic spline. Once constructed, the 
+PHSPoly can be evaluated like a function, or differentiated to yield a Vector of
+PHSPoly.
+
+This basis function is useful because it is closed under differentiation. This
+feature is used to form a recursive differentiation algorithm.
+"""
+struct PHSPoly
+    phs::PHS
+    poly::Poly
+end
+
+function (f::PHSPoly)(x::AbstractVector)
+    val = f.phs(x) * f.poly(x)
+    # most NaN/Inf base cases have been avoided during the recursion
+    return isnan(val) ? zero(val) : val
+end
+
+(fs::Vector{PHSPoly})(x::AbstractVector) = mapreduce(f->f(x), +, fs)
+
+function differentiate(f::PHSPoly, diff_orders)
+    dim = findfirst(y->y≠0, diff_orders)
+    if isnothing(dim)
+        return [f]
+    else
+        coeff = f.poly.coeff
+        ps = f.poly.exponents
+        k = f.phs.k
+        diff_orders_new = copy(diff_orders); diff_orders_new[dim] -= 1
+        psm1 = copy(ps); psm1[dim] -= 1
+        psp1 = copy(ps); psp1[dim] += 1
+        # the iszero(...) checks below prevent all of the NaN base cases
+        if f.phs.islog
+            term1 = iszero(ps[dim]) ? PHSPoly[] : differentiate(PHSPoly(PHS(k, true),    Poly(coeff*ps[dim], psm1)), diff_orders_new) 
+            term2 = iszero(k)       ? PHSPoly[] : differentiate(PHSPoly(PHS(k-2, true),  Poly(coeff*k,       psp1)), diff_orders_new)
+            term3 =                               differentiate(PHSPoly(PHS(k-2, false), Poly(coeff,         psp1)), diff_orders_new)
+            return vcat(term1, term2, term3)
+        else
+            term1 = iszero(ps[dim]) ? PHSPoly[] : differentiate(PHSPoly(PHS(k, false),   Poly(coeff*ps[dim], psm1)), diff_orders_new)
+            term2 = iszero(k)       ? PHSPoly[] : differentiate(PHSPoly(PHS(k-2, false), Poly(coeff*k,       psp1)), diff_orders_new)
+            return vcat(term1, term2)
+        end
+    end
 end

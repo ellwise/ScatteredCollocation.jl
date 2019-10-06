@@ -1,6 +1,7 @@
 import ScatteredCollocation
 using Test
 using IterTools
+using Makie
 
 """
 One-dimensional differentiation of monomials, structured nodes, multiple orders
@@ -13,7 +14,7 @@ of accuracy, multiple orders of derivative.
 
 numdims = 2
 eval_spacing = 0.125
-disc_points = ScatteredCollocation.randomDiscPoints
+disc_points = ScatteredCollocation.concentricDiscPoints#randomDiscPoints
 
 # differentiate on and between nodes
 eval_points, _ = disc_points(eval_spacing)
@@ -39,9 +40,21 @@ for colloc_spacing = [0.5, 0.25]
         Dy = zeros(Float64, num_eval, num_nodes)
         for row = 1:num_eval
             x0 = eval_points[row]
-            Dx[row, :] = ScatteredCollocation.differentiate(x0, colloc_nodes, [1, 0])
-            Dy[row, :] = ScatteredCollocation.differentiate(x0, colloc_nodes, [0, 1])
+            Dx[row, :] = ScatteredCollocation.differentiate(x0, colloc_nodes, [1, 0]; k=3, npoly=num_poly)
+            Dy[row, :] = ScatteredCollocation.differentiate(x0, colloc_nodes, [0, 1]; k=3, npoly=num_poly)
         end
+        println(Dx[1,:])
+        println(Dx[8,:])
+        println(Dx[21,:])
+        println(Dx[40,:])
+        idxs = [1,8,21,40]
+        println(eval_points[idxs])
+        println(exponents)
+        println(maximum(Dx))
+        scene = AbstractPlotting.Scene()
+        heatmap!(scene, abs.(Dx))
+        display(scene)
+        affadsfadfdas
 
         # differentiate samples and compare
         ux_approx = Dx*u

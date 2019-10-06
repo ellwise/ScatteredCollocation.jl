@@ -1,4 +1,25 @@
+"""
+Extract the points in a NNTree -> returns an Array{V,nd,np}.
+"""
+function getpoints(tree::NNTree{V}) where {V}
+    x = copy(tree.data)# copy the tree data so any reordering is kept separate from the tree
+    # Note: tree.indices corresponds to different things depending on tree.reordered
+    # - if true, then tree.data is a reordered copy of the input, hence invpermute! is needed
+    # - if false, then tree.data is pointer? and tree.indices are only used internally for optimisation
+    if tree.reordered
+        invpermute!(x, tree.indices)
+    end
+    return x
+end
 
+"""
+Extract the dimensionality of a NNTree. 
+"""
+getdims(tree::NNTree{V}) where {V} = length(V)
+
+"""
+Generate points on a square in a Cartesian grid.
+"""
 function griddedSquarePoints(dx::Number)
     num_intervals = convert(Int, cld(1, dx))
     dx = 1/num_intervals
@@ -13,6 +34,28 @@ function griddedSquarePoints(dx::Number)
     return x, bnd
 end
 
+"""
+Generate points on a cube in a Cartesian grid.
+"""
+function griddedCubePoints(dx::Number)
+    num_intervals = convert(Int, cld(1, dx))
+    dx = 1/num_intervals
+    x = [[dx*i, dx*j, dx*k] for i = 0:num_intervals, j = 0:num_intervals, k=0:num_intervals]
+    bnd = falses(num_intervals+1, num_intervals+1, num_intervals+1)
+    bnd[1, :, :] .= true
+    bnd[:, 1, :] .= true
+    bnd[:, :, 1] .= true
+    bnd[end, :, :] .= true
+    bnd[:, end, :] .= true
+    bnd[:, :, end] .= true
+    x = x[:] # flatten
+    bnd = bnd[:]
+    return x, bnd
+end
+
+"""
+Generate points on a square using low-discrepancy Halton sequences.
+"""
 function haltonSquarePoints(dx::Number)
     length = 1.0
     num_points = convert(Int, cld(length^2, dx^2))
@@ -22,6 +65,9 @@ function haltonSquarePoints(dx::Number)
 end
 
 # below seems to basically work, but I made it up...
+"""
+Generate points on a disc using low-discrepancy Halton sequences.
+"""
 function haltonDiscPoints(dx::Number)
     radius = 1.0
     num_points = convert(Int, cld(pi*radius^2, dx^2))
@@ -32,6 +78,9 @@ function haltonDiscPoints(dx::Number)
     return x, bnd
 end
 
+"""
+Generate points on a disc using concentric circles.
+"""
 function concentricDiscPoints(dx::Number)
     PACKING_NUMBER = 2*pi
     num_radial = convert(Int, cld(1, dx))
@@ -55,6 +104,9 @@ function concentricDiscPoints(dx::Number)
     return x, bnd
 end
 
+"""
+Generate points on a disc using a uniform random distribution.
+"""
 function randomDiscPoints(dx::Number)
     radius = 1.0
     num_nodes = convert(Int, cld(pi*radius^2, dx^2))
