@@ -1,0 +1,108 @@
+https://fenicsproject.org/pub/data/meshes/
+https://people.sc.fsu.edu/~jburkardt/data/xml/xml.html
+
+F First-order (the highest-order derivative is y')
+L Linear (there are no terms like y^2, exp(y), or yy')
+A Autonomous (the equation, though not the solution, is independent of t)
+S Scalar (there is just one dependent variable y rather than u, v, w, . . .)
+H Homogeneous (the right-hand side is zero)
+I Initial-value problem (not a boundary-value or eigenvalue problem)
+
+Among the huge variety of interesting ODEs, there are five that keep reappearing
+over and over in this book:
+  Second-order linear oscillator. Simple harmonic motion, or with damping.
+  Van der Pol equation. Nonlinear oscillator, with solutions on a limit cycle.
+  Nonlinear pendulum. Large-amplitude, with a periodic phase space.
+  Lorenz equations. Archetypal chaotic system, with three coupled variables.
+  Linear system. y = Ay, with solutions exp(tA)y0.
+Many other equations will also be mentioned, including the Airy, Belousov–
+Zhabotinsky, Bernoulli, Bessel, Blasius, Bratu, Brusselator, Carrier, Duffing,
+H´enon–Heiles, Hill, logistic, Lotka–Volterra, Mathieu, n-body, Oregonator,
+Painlev´e, and R¨ossler equations.
+
+"Broadly speaking, ODEs whose independent variables represent time are usually
+ IVPs modeling dynamics. ODEs whose independent variables represent space are
+ usually BVPs modeling equilibria. These differences are fundamental, and in
+ this book we will usually change the independent variable from t to x when
+ working with a BVP."
+
+Nonstandard BCs are sometimes called side conditions.
+
+y' + y = 0    t in [0,3]   y(0) = 1    exp    FLASHI    p2
+0.3y''-(1-y^2)y' + y = 0  t in [0, 20]    y(0) = 1, y'(0) = 0    van der Pol    flASHI p4
+y' - sin(t^2)y = 0  t in [0, 8]  y(0) = 1  FLaSHI p13
+y' - sign(sin(t^2))y = 0  t in [0, 8]  y(0) = 1 FLaSHI  p14
+y' + y = sin(t^2)  t in [0, 8]  y(0) = 0  FLaShI  p16
+y' + y = sign(sin(t^2))  t in [0, 8]  y(0) = 0  FLaShI  p17
+y' + 10y = cos(t) + 10sin(t) + g(t)  g(t) = 10(abs((t+1)/2-round((t+1)/2))<0.05)  t in [0, 15] y(0) = 0  FLaShI  p17
+
+y' = 3*cos(t)  y(0) = 0  t in [0, 20]  FLaShI  p25
+y' + |y|^2y = 3*cos(t)  t in [0, 20]  y(0) = 0 FlaShI  p26
+y' - 0.5log(1-|y|)y = 3*cos(t)  t in [0, 20]  y(0) = 0 FlaShI p26
+y' - y^2 = 0  t in [0, 1)  y(0) = 1  p28
+y' - y - y^2  t in [0, log(2))  y(0) = 1  p29
+y' - a(t)y - b(t)y^p Bernoulli equation p29
+y'' + y = 0  t = [0, 60]  y(0) = 1 y'(0) = 0 p40
+y'' + y^5 = 0  t = [0, 60]  y(0) = 1 y'(0) = 0 p41
+y'' + 0.1y' + y = 0  t = [0, 60]  y(0) = 1 y'(0) = 0 p41
+y'' + ey' + w^2y = 0 -->> critical damping: e = 2w p49
+
+y'' + y = 0  x in [0, 60]  y(0) = 1 y(60) = 0  p51
+y'' + y = 0  x in [0, 60]  y(0) = 1 y'(60) = 0  p51
+y'' - y = 0  x in [0, 60]  y(0) = y(60) = 1  p52  Boundary layers
+y'' - y = (x-20)/20  x in [0, 60]  y(0) = y(60) = 0  p53
+y'' - y^3 = (x-20)/20  x in [0, 60]  y(0) = y(60) = 0  p54
+0.02y'' + y' + y = 0  x in [0, 1]  y(0) = 0 y(1) = 1 p54
+0.02y'' + y' + y = 0  x in [0, 1]  y(0) = 0 y'(1) = 1 p55
+0.02y'' + y' + y = 0  x in [0, 1]  y(0) = 0 y'(1) = -y'(0) p55 *** THIS IS AN INTERESTING ONE TO IMPLEMENT
+y''' + y = 1  x in [0, 2]  y(0) = 0 y(1) = y(2) = 1  p56
+0.5y'' + y^2 = 1  x in [-1, 1]  y(-1) = y(1) = 0  p56  TWO INITIAL GUESSES FOR NONLINEAR ITERATION
+y'''' = -1  y(-1) = y'(-1) = y(1) = y'(1) = 0  p58  CLAMPED BEAM
+y'''' = -1  y(-1) = y'(-1) = y(1) = y''(1) = 0  p58  LESS CLAMPED BEAM
+y'''' = -1  y(-1) = y''(-1) = y(1) = y''(1) = 0  p59  EVEN LESS CLAMPED BEAM
+y'''' = 0  x in [0, d=2]  y(0) = y'(0) = y''(d) = 0 y'''(d)=w=0.1  p59
+"The solutions of u''''=0 are polynomials of degree <= 3" NOTE: No body forces
+
+To deal with periodic problems, I need my Tree to use a periodic distance metric
+and for my differentiate function to use the same distance metric for the LHS
+matrices. What about my basis functions? Might all be too hard.
+
+y'' - 10sign(x)y = 0  x in [-10, 10]  y(-10)=y(10)=1  p77
+y'' - xy = 0  x in [-10, 10]  y(-10) = y(10) = 1  Airy equation
+0.01y'' - xy = 0  x in [-10, 10]  y(-10) = y(10) = 1  Airy equation
+Bairy on p80 (out of phase Airy)
+0.003y'' - sin(x)y = 1  x in [-4pi, 4pi]  y(-4pi) = y(4pi) = 0  p81
+0.001y'' + xy' + xy = 0  x in [-2, 2]  y(-2) = -4 y(2) = 2  p81
+y'' + y = sin(0.7t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p92
+y'' + y = sin(0.95t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p92
+y'' + 0.04y' + y = sin(0.7t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p93
+y'' + 0.04y' + y = sin(0.95t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p94
+y'' + 0.04y' + y = sin(1.05t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p95
+y'' + y = sin(t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p96
+y'' + 0.04y' + y = sin(t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p96
+y'' + y = sin(t^2/100)  t in [0, 200]  y(0) = 0 y'(0) = 0 p96
+y'' + 0.04y' + y = sin(t^2/100)  t in [0, 200]  y(0) = 0 y'(0) = 0 p96
+y'' + 45sin(y/45) = sin(0.95t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p97
+y'' + 0.04y' + 45sin(y/45) = sin(0.95t)  t in [0, 200]  y(0) = 0 y'(0) = 0 p97
+
+0.001y'' + xy' - y = 0  x in [-2, 2]  y(-2) = 4 y(2) = 2  p260 CORNER LAYER
+
+PDEs
+u' = uxx  x in [-pi, pi]  t in [0, 1]  u(-pi, t) = u(pi, t) = 0 u(x, 0) = exp(-50(x-1)^4)  p281  HEAT
+u' = uxx + 3exp(u)/4pi^2  x in [-pi, pi]  t in [0, 12]  u(-pi, t) = u(pi, t) = 0
+    u(x, 0) = 0  p284 STABLE
+    u(x, 0) = UPPER SOLUTION TO ODE VERSION BLOWS UP
+u' = 0.02uxx + u - u^3  x in [-1, 1] t in [0, 4]  u(-1)=u(1)=0 u(x, 0)=0.3sin(pi.x)
+
+CAN I TEST DISPERSION BY MODIFYING AN ADVECTION EQUATION, SO I SOLVE ALL THE GRADIENTS, BUT THEN DON'T MOVE IT?
+OR I COULD JUST LOOK AT THE SPECTRUM OF THE OPERATOR?
+OR, A VERY SLOW MOVING ONE, AND JUST USE LOTS OF TIME-STEPS?
+
+p292  Deriving solitons as solutions to ODEs
+
+CHEBFUN USES ODE113 TO SOLVE NONLINEAR IVPs, THIS MIGHT STOP BE FROM SOLVING THESE USING NEWTON BVP METHODS
+PDE15S USES ODE15S INTERNALLY
+
+APPENDIX B HAS 100 EXAMPLES!
+
+I SHOULD HAVE SOME NEWTON ITERATION EXAMPLES, BUT CHECK THAT NEWTON IS APPROPRIATE, E.G. NOT FOR IVPs?

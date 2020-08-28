@@ -1,0 +1,7 @@
+name = "ScatteredCollocation"
+uuid = "294e117e-c957-11e8-0afb-4fd94fb72acf"
+authors = ["Elliott Wise <elliott.wise.14@ucl.ac.uk>"]
+version = "0.1.0"
+
+[deps]
+Traceur = "37b6cedf-1f77-55f8-9503-c64b63398394"
